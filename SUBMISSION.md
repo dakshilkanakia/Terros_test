@@ -8,7 +8,7 @@ End time: <fill in before the final commit>
 1. **Overdue view ignores the rep filter.** Worked on it. The Overdue tab is the "who is falling behind" screen managers open before check-in, and filtering it by rep returned the whole team. Out-of-scope `repId` also returned 200 instead of the documented 403.
 2. **Reps can complete teammates' tasks.** Worked on it. This is an authorization bug on a write path: a rep could complete any task on their team, though the domain says reps only see and act on their own.
 3. **Two sources of truth for visibility** (`TaskScopeResolver` for reads, `canAccess` in the service for writes) and filter acceptance declared in three places (route, service type, query definition). This is the root cause of 1 and 2. Worked on it, as part of both fixes.
-4. **No HTTP-level tests.** `supertest` is installed and the README says API tests use it, but none existed. Worked on it: added route tests covering authorization, scoping and error codes.
+4. **No HTTP-level or app-shell tests.** `supertest` is installed and the README says API tests use it, but none existed, and nothing tested how the Rep filter in `App` reaches the API request. Worked on it: added route tests covering authorization, scoping and error codes, and app-level tests for the filter wiring.
 5. **Completing a task wipes the list.** Worked on it. The whole table was replaced by "Loading tasks…" after every completion, so managers working through a list lost their place; a failed completion could also leave a stale row or hide its own error.
 6. **Malformed request bodies return 500** (and get logged as server errors) instead of the documented 400. Worked on it: low impact today since no endpoint reads a body, but cheap and it is an API contract violation.
 7. **README documents a `lint` script and ESLint that don't exist.** Worked on it: removed the README row so the docs match the code.
@@ -20,6 +20,8 @@ End time: <fill in before the final commit>
 - Added `taskRoutes.test.ts` (10 HTTP tests) and `scope.test.ts`, which asserts for every fixture user and task that `canAccessTask` agrees with what the list query returns. This guards against the read and write rules drifting apart again.
 - `useAsync` gained `refresh()`, which refetches without leaving the success state, plus `refreshing` and `refreshError`. `reload()` and the behavior on dependency changes are unchanged. `TaskList` refreshes after a completion (also after a failed one, so a 409 clears the stale row), keeps the "Saving…" button disabled until the refresh settles, keeps the old rows with a small "Could not refresh" message and a Refresh button if the refresh fails, and shows completion errors even when the list is empty.
 - `errorHandler` maps Express middleware errors with a 4xx status (malformed JSON, oversized body) to the documented `invalid_request` shape instead of 500, and no longer logs them as server errors.
+- Added `App.test.tsx` (test-only, no app code changed): the selected rep reaches the overdue request, survives a tab switch, is absent for reps, and resets when the account changes.
+- Removed the nonexistent `lint` row from the README scripts table.
 
 One commit per change, each with its tests.
 
@@ -36,7 +38,8 @@ One commit per change, each with its tests.
 - Baseline before changes: 17 tests passing, `tsc` clean.
 - Reproduced both bugs against the real app with a throwaway script (not committed) before touching code. Controls confirmed correct behavior elsewhere (`/api/tasks?repId=` already returned 403; other-team completion already returned 404).
 - Wrote the route tests first. Four failed on exactly the two bugs; the rest passed as controls.
-- After all changes: 37 tests passing, `tsc` clean. New tests cover the HTTP routes (authorization, scoping, 401/403/404/409), read/write scope parity, error shapes (400/413/500), and the web list during and after a completion (rows stay visible, failed refresh, 409, empty list, loading on filter change).
+- After all changes: 41 tests passing, `tsc` clean. New tests cover the HTTP routes (authorization, scoping, 401/403/404/409), read/write scope parity, error shapes (400/413/500), the web list during and after a completion (rows stay visible, failed refresh, 409, empty list, loading on filter change), and the Rep filter wiring in `App`.
+- The route and web-list tests were written before the fixes and failed on the intended behavior first. The `App` tests passed on first run because they cover behavior that already worked; I treated them as regression protection for the bug 1 fix path and did not break `App` to see them fail in the committed history.
 - Checked by hand against the running app: Overdue tab filtered by Alicia and Jordan shows one task each; a rep completing a teammate's task gets 404 while completing their own gets 200; malformed JSON returns 400 with the standard error body.
 - I did not manually exercise the new refresh error path in the browser; it is covered by component tests only.
 
@@ -45,5 +48,7 @@ One commit per change, each with its tests.
 I set rules at the start: the AI does not edit without my approval, it checks the architecture behind a bug before fixing it, commits stay small, and replies stay short. I had it read all docs and source and run the baseline before proposing anything, then reproduce each bug before fixing.
 
 Example of a suggestion I directed: my rule to check the architecture before fixing a bug turned a one-line `accepts` fix into two findings: filters were silently stripped in front of a security check, and write access used a separate rule from read access. The AI laid out three options for bug 2 (minimal one-line fix, a shared `canAccessTask`, or a repository-level change); I chose the shared function.
+
+Example of verifying before trusting: I had the AI reproduce both bugs with a throwaway script against the real app, including control cases that should already work, before any code changed. That confirmed the diagnosis (and that `/api/tasks?repId=` was fine) instead of relying on reading the code. For the new tests, I asked how to check they could fail, which led to a mutation check (temporarily removing `repId` from `TaskList` in `App.tsx`) that I ran by hand.
 
 Example of a verified and gated suggestion: to keep the first commit green, the AI wanted to mark the bug 2 test `it.skip`. The tool's auto-mode classifier blocked the edit as a security-test removal. The AI stopped and asked me instead of working around it; I approved it for that one commit only, and the test was unskipped in the next commit. Both fixes are in a git history that shows the skip and its removal.
