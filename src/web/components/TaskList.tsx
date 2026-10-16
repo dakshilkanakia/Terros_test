@@ -34,12 +34,13 @@ export function TaskList({ view, repId, status }: TaskListProps) {
     setActionError(null);
     try {
       await api.completeTask(task.id);
-      tasks.reload();
     } catch (error) {
       setActionError(`Could not complete "${task.title}": ${error instanceof Error ? error.message : String(error)}`);
-    } finally {
-      setPendingTaskId(null);
     }
+    // Refresh either way: on success the task leaves the list, and after a failure
+    // (for example a conflict) the row on screen may be out of date.
+    await tasks.refresh();
+    setPendingTaskId(null);
   }
 
   const rows = tasks.status === "success" ? tasks.data : [];
@@ -64,10 +65,6 @@ export function TaskList({ view, repId, status }: TaskListProps) {
     );
   }
 
-  if (rows.length === 0) {
-    return <p className="state state-empty">{emptyMessages[view]}</p>;
-  }
-
   return (
     <>
       {actionError && (
@@ -75,10 +72,24 @@ export function TaskList({ view, repId, status }: TaskListProps) {
           {actionError}
         </p>
       )}
-      <p className="muted">
-        {rows.length} {rows.length === 1 ? "task" : "tasks"}
-      </p>
-      <TaskTable tasks={rows} pendingTaskId={pendingTaskId} onComplete={completeTask} />
+      {tasks.refreshError && (
+        <p className="state state-error" role="alert">
+          Could not refresh the list. {tasks.refreshError.message}{" "}
+          <button type="button" onClick={() => void tasks.refresh()} disabled={tasks.refreshing}>
+            Refresh
+          </button>
+        </p>
+      )}
+      {rows.length === 0 ? (
+        <p className="state state-empty">{emptyMessages[view]}</p>
+      ) : (
+        <>
+          <p className="muted">
+            {rows.length} {rows.length === 1 ? "task" : "tasks"}
+          </p>
+          <TaskTable tasks={rows} pendingTaskId={pendingTaskId} onComplete={completeTask} />
+        </>
+      )}
     </>
   );
 }
