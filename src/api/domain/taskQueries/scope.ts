@@ -1,7 +1,16 @@
-import type { RequestContext } from "../../auth/requestContext";
-import type { DirectoryRepository, TaskQuery } from "../../repository/types";
+import type { AccessScope, RequestContext } from "../../auth/requestContext";
+import type { DirectoryRepository, Task, TaskQuery } from "../../repository/types";
 import { ForbiddenError } from "../errors";
 import type { TaskQueryFilters } from "./types";
+
+/**
+ * Whether a single task is inside a user's scope. Single-task counterpart of
+ * `TaskScopeResolver.resolve`: a task is visible here exactly when a list query
+ * would include it, so reads and writes share one rule.
+ */
+export function canAccessTask(scope: AccessScope, task: Task): boolean {
+  return scope.kind === "teams" ? scope.teamIds.includes(task.teamId) : task.assigneeId === scope.userId;
+}
 
 /** Narrows a repository query to the records the signed-in user may see. */
 export class TaskScopeResolver {

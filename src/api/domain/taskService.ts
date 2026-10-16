@@ -3,7 +3,7 @@ import type { RequestContext } from "../auth/requestContext";
 import type { DirectoryRepository, Task, TaskRepository } from "../repository/types";
 import type { Clock } from "./clock";
 import { ConflictError, NotFoundError } from "./errors";
-import type { TaskQueryEngine, TaskQueryFilters } from "./taskQueries";
+import { canAccessTask, type TaskQueryEngine, type TaskQueryFilters } from "./taskQueries";
 import { isOverdue } from "./tasks";
 
 export type TaskFilters = TaskQueryFilters;
@@ -26,7 +26,7 @@ export class TaskService {
 
   async completeTask(context: RequestContext, taskId: string): Promise<TaskView> {
     const task = await this.tasks.findTaskById(taskId);
-    if (!task || !this.canAccess(context, task)) {
+    if (!task || !canAccessTask(context.scope, task)) {
       throw new NotFoundError(`Task ${taskId} was not found`);
     }
     if (task.status === "completed") {
@@ -39,12 +39,6 @@ export class TaskService {
     });
     const [view] = await this.toViews([updated]);
     return view!;
-  }
-
-  private canAccess(context: RequestContext, task: Task): boolean {
-    return context.scope.kind === "teams"
-      ? context.scope.teamIds.includes(task.teamId)
-      : task.teamId === context.user.teamId;
   }
 
   private async toViews(tasks: Task[]): Promise<TaskView[]> {

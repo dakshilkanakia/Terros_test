@@ -51,7 +51,7 @@ describe("POST /api/tasks/:taskId/complete", () => {
     expect(res.body.task.status).toBe("completed");
   });
 
-  it.skip("reports a teammate's task as not found to a rep", async () => {
+  it("reports a teammate's task as not found to a rep", async () => {
     const app = setup();
 
     const res = await request(app).post("/api/tasks/task-1004/complete").set(as("demo-marcus"));
