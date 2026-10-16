@@ -1,7 +1,7 @@
 # Submission
 
 Start time: 1:46 PM (approximate)
-End time: 2:45 PM
+End time: 2:47 PM
 
 ## Opportunities, ranked
 
@@ -31,6 +31,7 @@ One commit per change, each with its tests.
 - Optimistic local updates after completing a task. A refetch keeps overdue status, filters and ordering authoritative on the server, at the cost of one extra request.
 - A larger refactor to make the repository answer access questions (`findTasks` by scope plus id). It would reshape the repository interface for little gain here; a single pure function gives the same guarantee.
 - Changing the web app for the two authorization bugs. Both are API-side; the UI already sent the right requests and displayed the API's flags. The only web change is the refresh behavior after completing a task.
+- A real but cosmetic race in `Workspace`: the Rep dropdown can render briefly with only "All reps" before the rep list loads, because `reps` is derived from `isManager`, which flips after `/me` resolves. I left the app as it is and made the tests wait for the loaded options; fixing it properly means changing when the filter renders.
 - Assumption: where `docs/` and the domain rules disagreed with the code, I treated the docs as the intended behavior. For the README's script table, I treated `package.json` as the truth and fixed the README.
 
 ## Verification
@@ -40,6 +41,7 @@ One commit per change, each with its tests.
 - Wrote the route tests first. Four failed on exactly the two bugs; the rest passed as controls.
 - After all changes: 41 tests passing, `tsc` clean. New tests cover the HTTP routes (authorization, scoping, 401/403/404/409), read/write scope parity, error shapes (400/413/500), the web list during and after a completion (rows stay visible, failed refresh, 409, empty list, loading on filter change), and the Rep filter wiring in `App`.
 - The route and web-list tests were written before the fixes and failed on the intended behavior first. The `App` tests passed on first run because they cover behavior that already worked, so I checked they can fail with a mutation: temporarily removing `repId` from the `TaskList` props in `App.tsx` makes the two tests that guard the rep-filter wiring (overdue request, tab switch) fail, while the other two (rep sees no filter, account reset) correctly still pass. I ran this by hand and the AI repeated it on a scratch copy of the repo; the mutation was reverted and is not in the history.
+- A fresh clone of the pushed repo failed one `App` test on its first cold run. I reproduced it deterministically by delaying `/api/team/reps` (same error: the option `u-alicia` was not in the select yet), traced it to the race above, and changed the tests to wait for the loaded option. They now pass with the delay as well as without it, and the full suite passed 8 consecutive runs.
 - Checked by hand against the running app: Overdue tab filtered by Alicia and Jordan shows one task each; a rep completing a teammate's task gets 404 while completing their own gets 200; malformed JSON returns 400 with the standard error body.
 - I did not manually exercise the new refresh error path in the browser; it is covered by component tests only.
 

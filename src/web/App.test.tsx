@@ -66,6 +66,12 @@ describe("App rep filter", () => {
     window.localStorage.clear();
   });
 
+  /** Waits for the rep list to load: the select can render briefly with only "All reps". */
+  async function pickRep(repId: string, name: string) {
+    await screen.findByRole("option", { name });
+    await userEvent.selectOptions(screen.getByLabelText("Rep"), repId);
+  }
+
   async function signedInAsManager() {
     const fetchMock = mockApi();
     render(<App />);
@@ -77,14 +83,14 @@ describe("App rep filter", () => {
     const fetchMock = await signedInAsManager();
     await userEvent.click(screen.getByRole("button", { name: "Overdue" }));
 
-    await userEvent.selectOptions(await screen.findByLabelText("Rep"), "u-alicia");
+    await pickRep("u-alicia", "Alicia Chen");
 
     await waitFor(() => expect(lastTaskRequest(fetchMock)).toBe("/api/tasks/overdue?repId=u-alicia"));
   });
 
   it("keeps the selected rep when switching between tabs", async () => {
     const fetchMock = await signedInAsManager();
-    await userEvent.selectOptions(await screen.findByLabelText("Rep"), "u-alicia");
+    await pickRep("u-alicia", "Alicia Chen");
     await waitFor(() => expect(lastTaskRequest(fetchMock)).toBe("/api/tasks?repId=u-alicia&status=open"));
 
     await userEvent.click(screen.getByRole("button", { name: "Overdue" }));
@@ -106,7 +112,7 @@ describe("App rep filter", () => {
 
   it("resets the rep filter when the account changes", async () => {
     const fetchMock = await signedInAsManager();
-    await userEvent.selectOptions(await screen.findByLabelText("Rep"), "u-alicia");
+    await pickRep("u-alicia", "Alicia Chen");
 
     await userEvent.selectOptions(screen.getByLabelText("Signed in as"), "demo-marcus");
     await screen.findByRole("heading", { name: "My follow-ups" });
