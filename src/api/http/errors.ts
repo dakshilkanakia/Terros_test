@@ -20,6 +20,12 @@ const statusByDomainCode: Record<string, number> = {
   conflict: 409,
 };
 
+/** Errors raised by Express middleware carry an HTTP `status`; 4xx ones are the client's fault. */
+function isClientError(error: unknown): error is { status: number; expose?: boolean; message: string } {
+  const status = (error as { status?: unknown } | null)?.status;
+  return error instanceof Error && typeof status === "number" && status >= 400 && status < 500;
+}
+
 export const errorHandler: ErrorRequestHandler = (error, _req, res, _next) => {
   let status = 500;
   let body: ApiErrorBody = { error: { code: "internal_error", message: "Something went wrong" } };
@@ -30,6 +36,10 @@ export const errorHandler: ErrorRequestHandler = (error, _req, res, _next) => {
   } else if (error instanceof DomainError) {
     status = statusByDomainCode[error.code] ?? 400;
     body = { error: { code: error.code, message: error.message } };
+  } else if (isClientError(error)) {
+    // Request-parsing failures from Express middleware, such as malformed JSON (400) or an oversized body (413).
+    status = error.status;
+    body = { error: { code: "invalid_request", message: error.expose ? error.message : "Invalid request" } };
   } else {
     console.error(error);
   }
