@@ -96,7 +96,6 @@ Every script works with `npm run <script>` or `pnpm <script>`.
 | `start:api` | Start the API without watch mode |
 | `test` | Run the test suite once |
 | `test:watch` | Run tests in watch mode |
-| `lint` | Lint the source with ESLint |
 | `typecheck` | Type-check the whole project |
 | `build` | Type-check and build the web app into `dist/` |
 

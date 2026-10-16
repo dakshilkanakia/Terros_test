@@ -11,7 +11,7 @@ End time: <fill in before the final commit>
 4. **No HTTP-level tests.** `supertest` is installed and the README says API tests use it, but none existed. Worked on it: added route tests covering authorization, scoping and error codes.
 5. **Completing a task wipes the list.** Worked on it. The whole table was replaced by "Loading tasks…" after every completion, so managers working through a list lost their place; a failed completion could also leave a stale row or hide its own error.
 6. **Malformed request bodies return 500** (and get logged as server errors) instead of the documented 400. Worked on it: low impact today since no endpoint reads a body, but cheap and it is an API contract violation.
-7. **Not worked on:** README lists a `lint` script and ESLint that don't exist.
+7. **README documents a `lint` script and ESLint that don't exist.** Worked on it: removed the README row so the docs match the code.
 
 ## What you changed
 
@@ -25,11 +25,11 @@ One commit per change, each with its tests.
 
 ## What you decided not to do
 
-- The README `lint` mismatch (item 7). Real but doc-only and low impact next to the other work.
+- Adding ESLint to make the README's `lint` row true (item 7). That means new dev dependencies, a config, and probably a batch of lint errors to triage, which is a tooling decision rather than a quick fix. I removed the README row instead.
 - Optimistic local updates after completing a task. A refetch keeps overdue status, filters and ordering authoritative on the server, at the cost of one extra request.
 - A larger refactor to make the repository answer access questions (`findTasks` by scope plus id). It would reshape the repository interface for little gain here; a single pure function gives the same guarantee.
 - Changing the web app for the two authorization bugs. Both are API-side; the UI already sent the right requests and displayed the API's flags. The only web change is the refresh behavior after completing a task.
-- Assumption: where the docs and README disagree with the code (for example the `lint` script), I treated the docs and the domain rules as the intended behavior.
+- Assumption: where `docs/` and the domain rules disagreed with the code, I treated the docs as the intended behavior. For the README's script table, I treated `package.json` as the truth and fixed the README.
 
 ## Verification
 
