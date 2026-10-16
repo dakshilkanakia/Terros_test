@@ -1,7 +1,7 @@
 # Submission
 
 Start time: 1:46 PM (approximate)
-End time: <fill in before the final commit>
+End time: 2:45 PM
 
 ## Opportunities, ranked
 
@@ -39,7 +39,7 @@ One commit per change, each with its tests.
 - Reproduced both bugs against the real app with a throwaway script (not committed) before touching code. Controls confirmed correct behavior elsewhere (`/api/tasks?repId=` already returned 403; other-team completion already returned 404).
 - Wrote the route tests first. Four failed on exactly the two bugs; the rest passed as controls.
 - After all changes: 41 tests passing, `tsc` clean. New tests cover the HTTP routes (authorization, scoping, 401/403/404/409), read/write scope parity, error shapes (400/413/500), the web list during and after a completion (rows stay visible, failed refresh, 409, empty list, loading on filter change), and the Rep filter wiring in `App`.
-- The route and web-list tests were written before the fixes and failed on the intended behavior first. The `App` tests passed on first run because they cover behavior that already worked; I treated them as regression protection for the bug 1 fix path and did not break `App` to see them fail in the committed history.
+- The route and web-list tests were written before the fixes and failed on the intended behavior first. The `App` tests passed on first run because they cover behavior that already worked, so I checked they can fail with a mutation: temporarily removing `repId` from the `TaskList` props in `App.tsx` makes the two tests that guard the rep-filter wiring (overdue request, tab switch) fail, while the other two (rep sees no filter, account reset) correctly still pass. I ran this by hand and the AI repeated it on a scratch copy of the repo; the mutation was reverted and is not in the history.
 - Checked by hand against the running app: Overdue tab filtered by Alicia and Jordan shows one task each; a rep completing a teammate's task gets 404 while completing their own gets 200; malformed JSON returns 400 with the standard error body.
 - I did not manually exercise the new refresh error path in the browser; it is covered by component tests only.
 
